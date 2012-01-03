@@ -35,7 +35,7 @@ LIBDIR=/usr/lib
 TARGETS=liborsp.a liborsp.so test stest
 
 # library modules
-ST_OBJS=encoding.o decoding.o rspfd.o client.o rspmsg.o
+ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o rspmsg.o
 
 all : $(TARGETS)
 
@@ -57,11 +57,11 @@ lib%.so : %.o
 
 encoding.o : encoding.c encoding.h buffer.h
 decoding.o : decoding.c decoding.h buffer.h
-rspfd.o    : rspfd.c rspfd.h
+rspfd_fd.o : rspfd_fd.c rspfd.h
 rspmsg.o   : rspmsg.c rspmsg.h buffer.h
-client.o   : client.c
+msgparse.o : msgparse.c
 liborsp.so : $(ST_OBJS)
-liborsp.a : $(ST_OBJS)
+liborsp.a  : $(ST_OBJS)
 
 ###############################################################################
 # PHONY TARGETS
@@ -89,7 +89,7 @@ install : all
 $(PACKAGE_TARNAME).tar.gz :                  \
   BUGS COPYING ChangeLog README THANKS       \
   Makefile                                   \
-  client.c .h stacktrace_dso.c \
+  msgparse.c .h stacktrace_dso.c \
   run_test.sh test.c
 	mkdir $(PACKAGE_TARNAME)
 	cp $^ $(PACKAGE_TARNAME)

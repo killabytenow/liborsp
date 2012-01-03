@@ -1,12 +1,12 @@
 #include "rspmsg.h"
 
-int orsp_read_msg(RSP_FD *fd, RSP_MSG *m)
+int orsp_msg_io_read(RSP_FD *fd, RSP_MSG *m)
 {
   int s, i, c, lc, r;
   unsigned ccs, ecs;
 
   /* clean reception buffer */
-  buffer_reset(&m->raw);
+  buffer_reset(&fd->buff);
   m->seqid = 0;
 
   /* read first char */
@@ -17,7 +17,7 @@ int orsp_read_msg(RSP_FD *fd, RSP_MSG *m)
   /* if message does not start with $ then it is an special message */
   if(c != '$')
   {
-    buffer_concatc(&m->raw, c);
+    buffer_concatc(&fd->buff, c);
     switch(c)
     {
       case '+':
@@ -60,14 +60,14 @@ int orsp_read_msg(RSP_FD *fd, RSP_MSG *m)
       if(((seqct == 2 || seqct == 3) && (c >= 0 && c <= 9)))
       {
         lc = c;
-        buffer_concatc(&m->raw, c);
+        buffer_concatc(&fd->buff, c);
         seqct--;
         continue;
       } else
       if(seqct == 1 && c == ':')
       {
-        m->seqid = ((m->raw->b[0] - '0') * 10) + (m->raw->b[1] - '0');
-        buffer_reset(&m->raw);
+        m->seqid = ((fd->buff->b[0] - '0') * 10) + (fd->buff->b[1] - '0');
+        buffer_reset(&fd->buff);
         seqct--;
         continue;
       } else
@@ -88,7 +88,7 @@ int orsp_read_msg(RSP_FD *fd, RSP_MSG *m)
         return GDBC_PARSER_BADSYN;
       }
       for(; rle_expansion > 1; rle_expansion--)
-        buffer_concatc(&m->raw, lc);
+        buffer_concatc(&fd->buff, lc);
       rle_expansion = 0;
     } else {
       switch(c)
@@ -110,7 +110,7 @@ int orsp_read_msg(RSP_FD *fd, RSP_MSG *m)
 
         default:
           lc = c ^ escape_mask;
-          buffer_concatc(&m->raw, lc);
+          buffer_concatc(&fd->buff, lc);
           escape_mask = 0;
       }
     }
@@ -133,7 +133,7 @@ int orsp_read_msg(RSP_FD *fd, RSP_MSG *m)
   return GDBC_OK;
 }
 
-int orsp_write_msg_char(RSP_FD *fd, char c)
+static int orsp_msg_io_write_char(RSP_FD *fd, char c)
 {
   int s = 1;
   if(c == '$' || c == '#' c == 0x7d || c & 0x80)
@@ -146,12 +146,12 @@ int orsp_write_msg_char(RSP_FD *fd, char c)
   return s;
 }
 
-int orsp_write_msg(RSP_FD *fd, RSP_MSG *m)
+int orsp_msg_io_write(RSP_FD *fd, RSP_MSG *m)
 {
   char *p;
   int lc, rep, i, prep, cs;
 
-  if(m->raw.s <= 0)
+  if(fd->buff.s <= 0)
   {
     fd->puts(fd, "$#00");
     return 0;
@@ -161,7 +161,7 @@ int orsp_write_msg(RSP_FD *fd, RSP_MSG *m)
   rep = 1;
   fd->putc(fd, '$');
   cs = 0;
-  for(i = 1; i < m->raw.s; i++)
+  for(i = 1; i < fd->buff.s; i++)
   {
     if(lc == p[i])
     {
@@ -170,40 +170,40 @@ int orsp_write_msg(RSP_FD *fd, RSP_MSG *m)
       switch(rep)
       {
         case 2:
-          orsp_write_msg_char(fd, lc);
+          orsp_msg_io_write_char(fd, lc);
           rep--;
         case 1:
-          orsp_write_msg_char(fd, lc);
+          orsp_msg_io_write_char(fd, lc);
           rep--;
           break;
 
         case 3:
-          if(orsp_write_msg_char(fd, lc) == 1)
+          if(orsp_msg_io_write_char(fd, lc) == 1)
           {
-            orsp_write_msg_char(fd, lc);
-            orsp_write_msg_char(fd, lc);
+            orsp_msg_io_write_char(fd, lc);
+            orsp_msg_io_write_char(fd, lc);
           } else {
-            orsp_write_msg_char(fd, '*');
-            orsp_write_msg_char(fd, 3 + 29);
+            orsp_msg_io_write_char(fd, '*');
+            orsp_msg_io_write_char(fd, 3 + 29);
           }
           rep -= 3;
           break;
 
         case (36 - 29): /* '$' */
-          orsp_write_msg_char(fd, lc);
+          orsp_msg_io_write_char(fd, lc);
           rep--;
         case (35 - 29): /* '#' */
         case (43 - 29): /* '+' */
         case (45 - 29): /* '-' */
-          orsp_write_msg_char(fd, lc);
+          orsp_msg_io_write_char(fd, lc);
           rep--;
         default:
           while(rep > 0)
           {
             prep = rep > 126 ? 126 : rep;
-            orsp_write_msg_char(fd, lc);
-            orsp_write_msg_char(fd, '*');
-            orsp_write_msg_char(fd, prep + 29);
+            orsp_msg_io_write_char(fd, lc);
+            orsp_msg_io_write_char(fd, '*');
+            orsp_msg_io_write_char(fd, prep + 29);
             rep -= prep;
           }
       } /* end-of-switch-and-your-puta-madre */

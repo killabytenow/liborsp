@@ -10,15 +10,15 @@
 #include "decoding.h"
 #include "encoding.h"
 #include "rspfd.h"
-#include "rspmsg.h"
-#include "client.h"
+#include "msgio.h"
+#include "msgparse.h"
 
 /*****************************************************************************
  * Message parser and writer
  *****************************************************************************/
 
 /*****************************************************************************
- * Command parser
+ * (SERVER) Command parser
  *****************************************************************************/
 
 void gdbc_command_reset(RSPMSG *c)
@@ -26,10 +26,10 @@ void gdbc_command_reset(RSPMSG *c)
   /* TODO XXX TODO */
 }
 
-int gdbc_parse_command(RSPMSG *c)
+int gdbc_command_parse(RSPFD *fd, RSPMSG *c)
 {
-  char *p = c->raw.b;
-  int l = c->raw.s;
+  char *p = fd->buff.b;
+  int l = fd->buff.s;
   int i;
 
   gdbc_command_reset(c);
@@ -154,13 +154,13 @@ int gdbc_parse_command(RSPMSG *c)
   return GDBC_CMD_OK;
 }
 
-int gdbc_read_command(RSP_FD *fd, RSPMSG *msg)
+int gdbc_read_command(RSPFD *fd, RSPMSG *msg)
 {
   int r;
 
   while(1)
   {
-    r = orsp_read_msg(fd, msg);
+    r = orsp_msg_io_read(fd, msg);
 
     switch(r)
     {
@@ -168,7 +168,7 @@ int gdbc_read_command(RSP_FD *fd, RSPMSG *msg)
         return -1;
 
       case GDBC_PARSER_BADSYN:
-        ERR("Received bad message '%s'.", (char *) msg->raw.b);
+        ERR("Received bad message '%s'.", (char *) fd->buff.b);
         ERR("Packet dumped:");
         /* XXX TODO XXX */
         continue;
@@ -187,7 +187,7 @@ int gdbc_read_command(RSP_FD *fd, RSPMSG *msg)
         exit(1);
     }
 
-    switch(r = gdbc_parse_command(msg))
+    switch(r = gdbc_command_parse(msg))
     {
       case GDBC_CMD_OK:
         fd->puts(fd, "+");
