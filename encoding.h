@@ -3,10 +3,9 @@
 
 #include "buffer.h"
 
-void orsp_encode_char(BUFFER *t, char c);
-void orsp_encode_char_rle(BUFFER *t, char c, int n, int rle);
-void orsp_encode_hexdata(BUFFER *t, char *b, int sz, int rle);
-void orsp_encode_data(BUFFER *t, char *b, int sz, int rle);
-void orsp_encode_oke(BUFFER *t, int oke);
+void rsp_encode_char(BUFFER *t, char c);
+void rsp_encode_hexdata(BUFFER *t, char *b, int sz);
+void rsp_encode_data(BUFFER *t, char *b, int sz);
+void rsp_encode_oke(BUFFER *t, int oke);
 
 #endif

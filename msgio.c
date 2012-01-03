@@ -1,6 +1,6 @@
 #include "rspmsg.h"
 
-int orsp_msg_io_read(RSP_FD *fd, RSP_MSG *m)
+int rsp_msg_io_read(RSP_FD *fd, RSP_MSG *m)
 {
   int s, i, c, lc, r;
   unsigned ccs, ecs;
@@ -133,7 +133,7 @@ int orsp_msg_io_read(RSP_FD *fd, RSP_MSG *m)
   return GDBC_OK;
 }
 
-static int orsp_msg_io_write_char(RSP_FD *fd, char c)
+static int rsp_msg_io_write_char(RSP_FD *fd, char c)
 {
   int s = 1;
   if(c == '$' || c == '#' c == 0x7d || c & 0x80)
@@ -146,7 +146,7 @@ static int orsp_msg_io_write_char(RSP_FD *fd, char c)
   return s;
 }
 
-int orsp_msg_io_write(RSP_FD *fd, RSP_MSG *m)
+int rsp_msg_io_write(RSP_FD *fd, RSP_MSG *m)
 {
   char *p;
   int lc, rep, i, prep, cs;

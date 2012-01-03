@@ -1,11 +1,23 @@
 #ifndef __RSPMSG_H__
 #define __RSPMSG_H__
 
-typedef struct _tag_RSPMSG {
-  int       interrupt;
-  int       command;
+#include "buffer.h"
 
-  /* request */
+typedef struct _tag_RSPMSG {
+  /* envelope */
+  /*   following data comes with the message, but outside of the message */
+  /*   payload -- if somebody pointed to my head with a gun asking me to */
+  /*   name them, I would call them "headers", but inside me I'd know it */
+  /*   would be a lie.                                                   */
+  int       type;
+  int       seq_id;
+  int       checksum;
+
+  /* interrupt data */
+  int       interrupt;
+
+  /* command data */
+  int       command;
   int       q_encoding1;
   long      q_length;
   long      q_thread_id;
