@@ -10,7 +10,14 @@ typedef struct _tag_RSPMSG {
   /*   name them, I would call them "headers", but inside me I'd know it */
   /*   would be a lie.                                                   */
   int       type;
+#define RSPMSG_TYPE_INVALID -1
+#define RSPMSG_TYPE_EOF      0
+#define RSPMSG_TYPE_RET      1
+#define RSPMSG_TYPE_ACK      2
+#define RSPMSG_TYPE_INT      3
+#define RSPMSG_TYPE_MSG      4
   int       seq_id;
+  int       seq_id_enabled;
   int       checksum;
 
   /* interrupt data */

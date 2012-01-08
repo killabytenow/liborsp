@@ -10,7 +10,7 @@ typedef struct _tag_GDBHANDLER {
 } GDBHANDLER;
 GDBHANDLER *gdbc_handlers;
 
-void gdbc_command_reset(RSPMSG *c);
-int gdbc_command_parse(RSPFD *fd, RSPMSG *c);
+void rspmsg_reset(RSPMSG *c);
+int rspmsg_command_parse(RSPFD *fd, RSPMSG *c);
 
 #endif

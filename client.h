@@ -5,6 +5,6 @@
 #include "rspfd.h"
 
 int gdbc_read_command(RSPFD *fd, RSPMSG *msg);
-int gdbc_process_command(RSPFD *fd, RSPMSG *m);
+int rsp_client_process_command(RSPFD *fd, RSPMSG *m);
 
 #endif

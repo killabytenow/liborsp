@@ -3,9 +3,11 @@
 #include "msgio.h"
 #include "msgparse.h"
 
-int gdbc_read_command(RSPFD *fd, RSPMSG *msg)
+int rsp_client_command_read(RSPFD *fd, RSPMSG *msg, RSPMSG *reply)
 {
   int r;
+
+  reply->type = RSPMSG_TYPE_INVALID;
 
   while(1)
   {
@@ -24,19 +26,19 @@ int gdbc_read_command(RSPFD *fd, RSPMSG *msg)
 
       case GDBC_PARSER_BADCHK:
         ERR("Invalid checksum. Ask for retransmission.");
-        fd->puts(fd, "-");
-        continue;
-
-      case GDBC_OK:
-        /* fall into command parsers */
-        break;
+        reply->type = RSPMSG_TYPE_RET;
+        return 0;
 
       default:
         ERR("Unknown return code %d from 'gdbc_parse_read_msg()'.", r);
         exit(1);
+
+      case GDBC_OK:
+        /* fall into command parsers */
+        break;
     }
 
-    switch(r = gdbc_command_parse(fd, msg))
+    switch(r = rspmsg_command_parse(fd, msg))
     {
       case GDBC_CMD_OK:
         fd->puts(fd, "+");
@@ -63,10 +65,10 @@ int gdbc_read_command(RSPFD *fd, RSPMSG *msg)
     }
   }
 
-  return gdbc_command_parse(fd, msg);
+  return GDBC_OK;
 }
 
-int gdbc_process_command(RSPFD *fd, RSPMSG *m)
+int rsp_client_process_command(RSPFD *fd, RSPMSG *m)
 {
   GDBHANDLER *h;
   int r;
@@ -76,7 +78,7 @@ int gdbc_process_command(RSPFD *fd, RSPMSG *m)
     ;
   if(!h)
   {
-    ERR("Command handler for '%c' not found.", m->command);
+    ERR("Command handler for '%c' not implemented.", m->command);
     fd->puts(fd, "$#00");
     return -1;
   }

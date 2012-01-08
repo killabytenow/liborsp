@@ -35,7 +35,7 @@ LIBDIR=/usr/lib
 TARGETS=liborsp.a liborsp.so test stest
 
 # library modules
-ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o client.o
+ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o client.o msgio.o
 
 all : $(TARGETS)
 
@@ -59,6 +59,7 @@ encoding.o : encoding.c encoding.h buffer.h
 decoding.o : decoding.c decoding.h buffer.h
 rspfd_fd.o : rspfd_fd.c rspfd.h
 client.o   : client.c client.h buffer.h
+msgio.o    : msgio.c
 msgparse.o : msgparse.c
 liborsp.so : $(ST_OBJS)
 liborsp.a  : $(ST_OBJS)

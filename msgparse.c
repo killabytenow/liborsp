@@ -17,7 +17,7 @@
  * Message parser and writer
  *****************************************************************************/
 
-void gdbc_command_reset(RSPMSG *c)
+void rspmsg_reset(RSPMSG *c)
 {
   /* TODO XXX TODO */
 }
@@ -26,13 +26,13 @@ void gdbc_command_reset(RSPMSG *c)
  * (SERVER) Command parser
  *****************************************************************************/
 
-int gdbc_command_parse(RSPFD *fd, RSPMSG *c)
+int rspmsg_command_parse(RSPFD *fd, RSPMSG *c)
 {
   char *p = fd->buff.b;
   int l = fd->buff.s;
   int i;
 
-  gdbc_command_reset(c);
+  rspmsg_reset(c);
 
   c->command = *p;
   p++; l--;
