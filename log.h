@@ -31,25 +31,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 /* messages (for debugging and error purposes) */
-#define __MSG(x, ...)         {                                           \
-                                fprintf(stderr, "liborsp:%s: ", (x));     \
-                                fprintf(stderr, __VA_ARGS__);             \
-                              }
-#define ERR(...)              { __MSG("error: ",   __VA_ARGS__);          }
-#define WRN(...)              { __MSG("warning: ", __VA_ARGS__);          }
-#define MSG(...)              { __MSG("",          __VA_ARGS__);          }
-#define FAT(...)              { __MSG("fatal: ",   __VA_ARGS__); exit(1); }
-#define ERR_ERRNO(f, ...)     {                                           \
-                                char __ed[255];                           \
-                                strerror_r(errno,  __ed, sizeof(__ed));   \
-                                ERR(f ": %s", ## __VA_ARGS__, __ed);      \
-                              }
-#define FAT_ERRNO(f, ...)     {                                           \
-                                char __ed[255];                           \
-                                strerror_r(errno,  __ed, sizeof(__ed));   \
-                                FAT(f ": %s", ## __VA_ARGS__, __ed);      \
-                              }
+#define LOGFUNC(F, L, P, X) \
+          static inline void F(char *f, ...)                \
+            __attribute__ ((__format__ (__printf__, 1, 2)));\
+          static inline void F(char *f, ...)                \
+          {                                                 \
+            P                                               \
+            va_list ap;                                     \
+            va_start(ap, f);                                \
+            fputs("liborsp:" L, stderr);                    \
+            vfprintf(stderr, f, ap);                        \
+            va_end(ap);                                     \
+            X                                               \
+          }
+LOGFUNC(ERR, "error:",   , fputc('\n', stderr); )
+LOGFUNC(WRN, "warning:", , fputc('\n', stderr); )
+LOGFUNC(MSG, "",         , fputc('\n', stderr); )
+LOGFUNC(FAT, "fatal: ",  , fputc('\n', stderr); exit(1);)
+LOGFUNC(ERR_ERRNO, "error:",                              \
+          char e[255]; strerror_r(errno,  e, sizeof(e));, \
+          fputs(e, stderr); )
+LOGFUNC(FAT_ERRNO, "fatal:",                              \
+          char e[255]; strerror_r(errno,  e, sizeof(e));, \
+          fputs(e, stderr); exit(1); )
+#undef LOGFUNC
 
 #endif

@@ -17,18 +17,10 @@ typedef struct __tag_RSPFD {
 
   /* output/input buffer */
   BUFFER buff;
-  int    buff_state;
-#define    RSP_FD_BUFF_VOID    0
-#define    RSP_FD_BUFF_READ    0
-#define    RSP_FD_BUFF_WRITE   0
-
-  /* following union makes possible to extend this channel for */
-  /* using with "special" communications channels based on own */
-  /* implementations of callback functions defined before      */
-  union {
-    int   fd;
-    void *data;
-  };
+//  int    buff_state;
+//#define    RSP_FD_BUFF_VOID    0
+//#define    RSP_FD_BUFF_READ    0
+//#define    RSP_FD_BUFF_WRITE   0
 } RSPFD;
 
 static inline void rspfd_rle_write_enable(RSPFD *fd, int enable)

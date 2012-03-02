@@ -1,11 +1,13 @@
+#include "helper.h"
 #include "rspmsg.h"
 #include "rspfd.h"
 
 #undef getc
+#undef putc
 
 int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
 {
-  int s, i, lc, r;
+  int i, lc, r, seqct, escape_mask, rle_expansion, pos;
   char c;
   unsigned ccs, ecs;
 
@@ -19,7 +21,10 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
   /* read first char */
   r = fd->getc(fd, &c);
   if(r < 0)
+  {
+    m->type = RSPMSG_TYPE_ERR_IO;
     return -1;
+  }
   if(!r)
   {
     m->type = RSPMSG_TYPE_EOF;
@@ -32,17 +37,19 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
     buffer_concatc(&fd->buff, c);
     switch(c)
     {
-      case '+': m->type = RSPMSG_TYPE_ACK; break;
-      case '-': m->type = RSPMSG_TYPE_RET; break;
-      case 'c': m->type = RSPMSG_TYPE_INT; break;
+      case '+': m->type = RSPMSG_TYPE_RPL_ACK;       break;
+      case '-': m->type = RSPMSG_TYPE_RPL_RET;       break;
+      case 'c': m->type = RSPMSG_TYPE_CMD_INTERRUPT; break;
       default:
         MSG("Received invalid message '%c'.", c);
-        m->type = RSPMSG_TYPE_INVALID;
+        m->type = RSPMSG_TYPE_ERR_INVALID;
         return -1;
     }
     return 0;
-  } else
-    m->type = RSPMSG_TYPE_MSG;
+  } else {
+    /* we cannot determine it yet */
+    m->type = RSPMSG_TYPE_NOT_PARSED_YET;
+  }
 
   /* read the message until '#' */
   seqct = 3;
@@ -55,16 +62,13 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
   {
     /* read char */
     r = fd->getc(fd, &c);
-    if(r < 0)
+    if(r <= 0)
     {
-      ERR_ERRNO("Read error");
-      m->type = RSPMSG_TYPE_EOF;
-      return -1;
-    }
-    if(!r)
-    {
-      WRN("message truncated -- EOF");
-      m->type = RSPMSG_TYPE_EOF;
+      if(!r)
+        WRN("message truncated -- EOF");
+      else
+        ERR_ERRNO("Read error");
+      m->type = RSPMSG_TYPE_ERR_IO;
       return -1;
     }
 
@@ -88,8 +92,8 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
       } else
       if(seqct == 1 && c == ':')
       {
-        m->seq_id = ((fd->buff->b[0] - '0') * 10) + (fd->buff->b[1] - '0');
-        m->seqid_enabled = 1;
+        m->seq_id = ((((char *) fd->buff.b)[0] - '0') * 10) + (((char *) fd->buff.b)[1] - '0');
+        m->seq_id_enabled = 1;
         pos = 0;
         buffer_reset(&fd->buff);
         seqct--;
@@ -101,9 +105,9 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
     /* following chars are forbidden */
     if(c == '#' || c == '$')
     {
-      WRN("unexpected char '%c' inside of message.");
+      WRN("unexpected char '%c' inside of message.", c);
       WRN("(escape_mask=%d,  rle_expansion=%d).", escape_mask, rle_expansion);
-      m->type = RSPMSG_TYPE_INVALID;
+      m->type = RSPMSG_TYPE_ERR_INVALID;
       return -1;
     }
 
@@ -113,8 +117,8 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
       rle_expansion = c - 29;
       if(rle_expansion < 0 || rle_expansion > 126)
       {
-        ERR("RLE factor out of bounds (%02x*%02x).", lc, *rle_expansion+29);
-        m->type = RSPMSG_TYPE_INVALID;
+        ERR("RLE factor out of bounds (%02x*%d).", lc, rle_expansion);
+        m->type = RSPMSG_TYPE_ERR_INVALID;
         return -1;
       }
       for(; rle_expansion > 1; rle_expansion--)
@@ -127,7 +131,7 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
           if(escape_mask != 0)
           {
             ERR("Escape char { cannot appear after a escape char {.");
-            m->type = RSPMSG_TYPE_INVALID;
+            m->type = RSPMSG_TYPE_ERR_INVALID;
             return -1;
           }
           escape_mask = 0x20;
@@ -139,7 +143,7 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
             if(!pos || escape_mask)
             {
               ERR("Unexpected RLE operator * at beginning of the message.");
-              m->type = RSPMSG_TYPE_INVALID;
+              m->type = RSPMSG_TYPE_ERR_INVALID;
               return -1;
             }
             rle_expansion = -1;
@@ -160,24 +164,39 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
   for(i = 0; i < 2; i++)
   {
     r = fd->getc(fd, &c);
-    if(r < 0) return GDBC_PARSER_READ_ERROR;
-    if(!r)    return GDBC_PARSER_EOF;
+    if(r <= 0)
+    {
+      m->type = RSPMSG_TYPE_ERR_IO;
+      if(!r)
+        WRN("CRC message truncated -- EOF");
+      else
+        ERR_ERRNO("Read error");
+      return -1;
+    }
     if((c = from_xdigit(c)) < 0)
-      return GDBC_PARSER_BADSYN;
+    {
+      ERR("Unexpected character %02x in CRC.", c);
+      m->type = RSPMSG_TYPE_ERR_INVALID;
+      return -1;
+    }
     ecs += (c << (4 * i));
   }
   if(ccs != ecs)
-    return GDBC_PARSER_BADCHK;
-
+  {
+    m->type = RSPMSG_TYPE_ERR_BADCHK;
+    return -1;
+  }
+  if(fd->buff.l == 0)
+    m->type = RSPMSG_TYPE_VOID;
   m->checksum = ecs;
 
-  return GDBC_OK;
+  return 0;
 }
 
-static int rsp_io_msg_write_msg_char(RSP_FD *fd, char c)
+static int rsp_io_msg_write_msg_char(RSPFD *fd, char c)
 {
   int s = 1;
-  if(c == '$' || c == '#' c == 0x7d || c & 0x80)
+  if(c == '$' || c == '#' || c == 0x7d || c & 0x80)
   {
     if(fd) fd->putc(fd, 0x7d);
     c = c ^ 0x20;
@@ -187,9 +206,9 @@ static int rsp_io_msg_write_msg_char(RSP_FD *fd, char c)
   return s;
 }
 
-int rsp_io_msg_write_msg(RSP_FD *fd, RSP_MSG *m)
+int rsp_io_msg_write(RSPFD *fd)
 {
-  char *p;
+  char *p = fd->buff.b;
   int lc, rep, i, prep, cs;
 
   if(fd->buff.s <= 0)
@@ -221,60 +240,85 @@ int rsp_io_msg_write_msg(RSP_FD *fd, RSP_MSG *m)
             break;
 
           case 3:
-            if(orsp_msg_io_write_char(fd, lc) == 1)
+            if(rsp_io_msg_write_msg_char(fd, lc) == 1)
             {
-              orsp_msg_io_write_char(fd, lc);
-              orsp_msg_io_write_char(fd, lc);
+              rsp_io_msg_write_msg_char(fd, lc);
+              rsp_io_msg_write_msg_char(fd, lc);
             } else {
-              orsp_msg_io_write_char(fd, '*');
-              orsp_msg_io_write_char(fd, 3 + 29);
+              rsp_io_msg_write_msg_char(fd, '*');
+              rsp_io_msg_write_msg_char(fd, 3 + 29);
             }
             rep -= 3;
             break;
 
           case (36 - 29): /* '$' */
-            orsp_msg_io_write_char(fd, lc);
+            rsp_io_msg_write_msg_char(fd, lc);
             rep--;
           case (35 - 29): /* '#' */
           case (43 - 29): /* '+' */
           case (45 - 29): /* '-' */
-            orsp_msg_io_write_char(fd, lc);
+            rsp_io_msg_write_msg_char(fd, lc);
             rep--;
           default:
             while(rep > 0)
             {
               prep = rep > 126 ? 126 : rep;
-              orsp_msg_io_write_char(fd, lc);
-              orsp_msg_io_write_char(fd, '*');
-              orsp_msg_io_write_char(fd, prep + 29);
+              rsp_io_msg_write_msg_char(fd, lc);
+              rsp_io_msg_write_msg_char(fd, '*');
+              rsp_io_msg_write_msg_char(fd, prep + 29);
               rep -= prep;
             }
         } /* end-of-switch-and-your-puta-madre */
       } /* end-of-if-af-uf */
     } /* end-of-for-y-tu-vieja-la-calva */
   }
-  orsp_msg_io_write_char(fd, '#');
-  orsp_msg_io_write_char(fd, ((cs >> 4) & 0x0f) + '0');
-  orsp_msg_io_write_char(fd, ((cs >> 0) & 0x0f) + '0');
+  rsp_io_msg_write_msg_char(fd, '#');
+  rsp_io_msg_write_msg_char(fd, ((cs >> 4) & 0x0f) + '0');
+  rsp_io_msg_write_msg_char(fd, ((cs >> 0) & 0x0f) + '0');
 
   m->checksum = cs;
 
   return 0;
 }
 
-int rsp_io_msg_write(RSP_FD *fd, RSP_MSG *m)
+int rsp_io_msg_write_msg(RSPFD *fd, RSPMSG *m)
 {
   int r = 0;
 
+  if(RSPMSG_IS_ERR(m->type))
+  {
+    ERR("You tried to send a msg on error (type 0x%04x).", m->type);
+    return -1;
+  }
+
+  buffer_reset(&fd->buff);
   switch(m->type)
   {
-    case RSPMSG_TYPE_MSG: r = rsp_io_msg_write_msg(fd, m); break;
-    case RSPMSG_TYPE_RET: r = rsp_io_msg_write_ret(fd, m); break;
-    case RSPMSG_TYPE_ACK: r = rsp_io_msg_write_ack(fd, m); break;
-    case RSPMSG_TYPE_INT: r = rsp_io_msg_write_int(fd, m); break;
+    case RSPMSG_TYPE_NONE:
+      return 0;
+
+    case RSPMSG_TYPE_VOID:
+      break;
+
+    case RSPMSG_TYPE_MSG_CMD_SET_BAUD:
+      break;
+
+    case RSPMSG_TYPE_RET:
+      return fd->putc(fd, '-') != EOF;
+
+    case RSPMSG_TYPE_ACK:
+      return fd->putc(fd, '+') != EOF;
+
+    case RSPMSG_TYPE_INT:
+      return fd->putc(fd, m->interrupt) != EOF;
+
     default:
       FAT("Invalid msg type %d", m->type);
   }
 
+  if(fd)
+    r = rsp_io_msg_write_msg(fd, m);
+
   return r;
 }
+

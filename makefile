@@ -31,37 +31,37 @@ PACKAGE_TARNAME=$(PACKAGE_NAME)-$(PACKAGE_VERSION)
 DOCDIR=/usr/share/doc/$(PACKAGE_NAME)
 LIBDIR=/usr/lib
 
-# filez
-TARGETS=liborsp.a liborsp.so test stest
-
 # library modules
-ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o client.o msgio.o
+ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o server.o msgio.o
 
-all : $(TARGETS)
+all : liborsp.so test liborsp.a
 
 %.o : %.c
 	gcc \
 	  -DPACKAGE_NAME='"$(PACKAGE_NAME)"' \
 	  -DPACKAGE_VERSION='"$(PACKAGE_VERSION)"' \
 	  -DPTRACE_ENABLED='"$(PTRACE_ENABLED)"' \
+          -fplan9-extensions \
 	  -Wall -fPIC -c -o $@ $<
 
 lib%.a : %.o
 	ar r $@ $^
 
-lib%.so : %.o
+liborsp.so : $(ST_OBJS)
 	gcc -Wall -shared -fPIC -o $@ $^
 
 %.so : %.o
 	gcc -Wall -shared -fPIC -o $@ $^
 
+test : test.c liborsp.so
+	gcc -Wall -o $@ $^
+
 encoding.o : encoding.c encoding.h buffer.h
 decoding.o : decoding.c decoding.h buffer.h
 rspfd_fd.o : rspfd_fd.c rspfd.h
-client.o   : client.c client.h buffer.h
+server.o   : server.c server.h buffer.h
 msgio.o    : msgio.c
 msgparse.o : msgparse.c
-liborsp.so : $(ST_OBJS)
 liborsp.a  : $(ST_OBJS)
 
 ###############################################################################
@@ -73,7 +73,7 @@ clean :
 	rm -f stacktrace.o ptrace.o stacktrace_dso.o \
 	      libstacktrace.a                        \
 	      stacktrace.so libstacktrace.so         \
-	      test stest
+	      test
 
 install : all
 	install -m 0644 -D BUGS             $(DOCDIR)/BUGS

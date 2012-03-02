@@ -4,7 +4,10 @@
 #include "rspfd.h"
 
 typedef struct __tag_RSPFD_FD {
-  RSPFD rspfd;
+  /* inherit from RSPFD */
+  struct __tag_RSPFD;
+
+  /* add special attributes */
   int   fd;
 } RSPFD_FD;
 

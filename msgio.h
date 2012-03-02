@@ -20,7 +20,7 @@
 #define GDBC_CMD_UNKNOWN    0x0006
 #define GDBC_CMD_NOMORE     GDBC_EOF
 
-int rsp_msg_io_read(RSPFD *fd, RSPMSG *m);
-int rsp_msg_io_write(RSPFD *fd, RSPMSG *m);
+int rsp_io_msg_read(RSPFD *fd, RSPMSG *m);
+int rsp_io_msg_write(RSPFD *fd, RSPMSG *m);
 
 #endif
