@@ -37,8 +37,13 @@ int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r)
 
     /* only 1 addr param */
     case 'c': SETAR(CMD_CONTINUE,      RPL_ACK);
+      if((i = rsp_decode_hexnumber(&m->cmd.cont.addr, p, l, NULL, 1)) < 0) /* copy register name */
+        goto bad_syn;
+      p += i; l -= i;
+      break;
+
     case 'G': SETAR(CMD_WRITE_REGS,    RPL_ACK);
-      if((i = rsp_decode_hexnumber(&m->cmd.addr, p, l, NULL, 1)) < 0) /* copy register name */
+      if((i = rsp_decode_hexnumber(&m->cmd.buffers.arg1, p, l, NULL, 1)) < 0) /* copy register name */
         goto bad_syn;
       p += i; l -= i;
       break;

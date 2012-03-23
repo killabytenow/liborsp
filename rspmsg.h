@@ -47,76 +47,69 @@
 #define RSPMSG_IS_RPL(x)           (RSPMSG_TYPE_RPL_MASK & (x))
 #define RSPMSG_IS_ERR(x)           (RSPMSG_TYPE_ERR_MASK & (x))
 
-typedef struct _tag_RSPMSG_RESERVED {
-  BUFFER    __b_reserved_1;
-  BUFFER    __b_reserved_2;
-  BUFFER    __b_reserved_3;
-  BUFFER    __b_reserved_4;
-} RSPMSG_RESERVED;
-#define RSPMSG_STRUCT_BEGIN(m)      \
-  typedef struct _tag_RSPMSG_##m m; \
-  struct _tag_RSPMSG_##m {
-#define RSPMSG_STRUCT_BUFFER_0      \
-    union {                         \
-      RSPMSG_RESERVED;              \
-    };
-#define RSPMSG_STRUCT_BUFFER_0      \
-    union {                         \
-      RSPMSG_RESERVED;              \
-    };
-#define RSPMSG_STRUCT_BEGIN(m)      \
+#define RSPMSG_STRUCT_BEGIN_4(m, a, b, c, d) \
+  typedef struct _tag_RSPMSG_##m RSPMSG_##m; \
+  struct _tag_RSPMSG_##m {                   \
+    BUFFER a;                                \
+    BUFFER b;                                \
+    BUFFER c;                                \
+    BUFFER d;
+#define RSPMSG_STRUCT_BEGIN_3(m, a, b, c)   RSPMSG_STRUCT_BEGIN_4(m, a, b, c, __b_reserved_4)
+#define RSPMSG_STRUCT_BEGIN_2(m, a, b)      RSPMSG_STRUCT_BEGIN_3(m, a, b, __b_reserved_3)
+#define RSPMSG_STRUCT_BEGIN_1(m, a)         RSPMSG_STRUCT_BEGIN_2(m, a, __b_reserved_2)
+#define RSPMSG_STRUCT_BEGIN_0(m)            RSPMSG_STRUCT_BEGIN_1(m, __b_reserved_1)
 #define RSPMSG_STRUCT_END           \
   };
 
-typedef struct _tag_RSPMSG_CMD_INTERRUPT RSPMSG_CMD_INTERRUPT;
-struct _tag_RSPMSG_CMD_INTERRUPT {
-  RSPMSG_RESERVED;
+RSPMSG_STRUCT_BEGIN_4(BUFFERS, arg1, arg2, arg3, arg4)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_INTERRUPT)
   int    code;
-};
-typedef struct _tag_RSPMSG_CMD_EXT_MODE {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_EXT_MODE;
-typedef struct _tag_RSPMSG_CMD_LAST_SIGNAL {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_LAST_SIGNAL;
-typedef struct _tag_RSPMSG_CMD_DETACH {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_DETACH;
-typedef struct _tag_RSPMSG_CMD_READ_REGS {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_READ_REGS;
-typedef struct _tag_RSPMSG_CMD_KILL {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_KILL;
-typedef struct _tag_RSPMSG_CMD_CONTINUE {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_CONTINUE;
-typedef struct _tag_RSPMSG_CMD_WRITE_REGS {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_WRITE_REGS;
-typedef struct _tag_RSPMSG_CMD_READ_REG {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_READ_REG;
-typedef struct _tag_RSPMSG_CMD_WRITE_REG {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_WRITE_REG;
-typedef struct _tag_RSPMSG_TYPE_CMD_CONT_SIGNAL {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_CONT_SIGNAL;
-typedef struct _tag_RSPMSG_CMD_REMOTE_START {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_REMOTE_START;
-typedef struct _tag_RSPMSG_CMD_SET_THREAD {
-  RSPMSG_RESERVED;
-} RSPMSG_CMD_SET_THREAD;
-typedef struct _tag_RSPMSG_CMD_READ_MEMORY {
-  RSPMSG_RESERVED;
-/* todo */
-} RSPMSG_CMD_READ_MEMORY;
-typedef struct _tag_RSPMSG_CMD_WRITE_MEMORY {
-  RSPMSG_RESERVED;
-/* todo */
-} RSPMSG_CMD_WRITE_MEMORY;
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_EXT_MODE)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_LAST_SIGNAL)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_DETACH)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_READ_REGS)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_KILL)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_CONTINUE)
+  long addr;
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_WRITE_REGS)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_READ_REG)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_WRITE_REG)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_CONT_SIGNAL)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_REMOTE_START)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_SET_THREAD)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_READ_MEMORY)
+  RSPMSG_STRUCT_END
+
+RSPMSG_STRUCT_BEGIN_0(CMD_WRITE_MEMORY)
+  RSPMSG_STRUCT_END
 
 typedef struct _tag_RSPMSG {
   /* envelope */
@@ -131,6 +124,8 @@ typedef struct _tag_RSPMSG {
 
   /* ------------------------- */
   union {
+    RSPMSG_BUFFERS          buffers;      /* Generic access to buffers    */
+
     RSPMSG_CMD_INTERRUPT    interrupt;    /* RSPMSG_TYPE_CMD_INTERRUPT    */
     RSPMSG_CMD_EXT_MODE     ext_mode;     /* RSPMSG_TYPE_CMD_EXT_MODE     */
     RSPMSG_CMD_LAST_SIGNAL  last_signal;  /* RSPMSG_TYPE_CMD_LAST_SIGNAL  */
@@ -145,7 +140,7 @@ typedef struct _tag_RSPMSG {
     RSPMSG_CMD_REMOTE_START remote_start; /* RSPMSG_TYPE_CMD_REMOTE_START */
     RSPMSG_CMD_SET_THREAD   set_thread;   /* RSPMSG_TYPE_CMD_SET_THREAD   */
     RSPMSG_CMD_READ_MEMORY  read_memory;  /* RSPMSG_TYPE_CMD_READ_MEMORY  */
-    RSPMSG_CMD_WRITE_MEMORY write_memory; /* RSPMSG_TYPE_CMD_WRITE_MEMORY  */
+    RSPMSG_CMD_WRITE_MEMORY write_memory; /* RSPMSG_TYPE_CMD_WRITE_MEMORY */
   } cmd;
 
   union {

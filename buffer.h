@@ -19,7 +19,7 @@ static inline void buffer_grow(BUFFER *b, size_t count)
     return;
   b->__bs += (1 + count/BUFFER_INC) * BUFFER_INC;
   if(!(b->b = realloc(b->b, b->__bs)))
-    FAT("no mem for buffer_grow (to %d bytes, with increment of %d).", b->__bs, count);
+    FAT("no mem for buffer_grow (to %d bytes, with increment of %ld).", b->__bs, count);
 }
 
 static inline void buffer_reset(BUFFER *b)
