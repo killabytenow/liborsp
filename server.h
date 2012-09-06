@@ -28,9 +28,9 @@ typedef struct _tag_RSPSERVER {
 //  RSPSRV_CMD_HANDLER *s_read_registers;
 } RSPSERVER;
 
-int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r);
+int rsp_server_command_parse(RSPFD *fd, RSPMSG *m);
 int rsp_server_command_receive(RSPFD *fd, RSPMSG *msg);
-int rsp_server_command_receive_and_ack(RSPFD *fd, RSPMSG *msg, RSPMSG *rpl);
+int rsp_server_command_receive_and_ack(RSPFD *fd, RSPMSG *msg);
 int rsp_client_process_command(RSPSERVER *s, RSPMSG *m);
 
 #endif

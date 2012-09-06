@@ -24,6 +24,7 @@
 #define RSPMSG_TYPE_CMD_SET_THREAD    (RSPMSG_TYPE_CMD_MASK | 'H')
 #define RSPMSG_TYPE_CMD_READ_MEMORY   (RSPMSG_TYPE_CMD_MASK | 'm')
 #define RSPMSG_TYPE_CMD_WRITE_MEMORY  (RSPMSG_TYPE_CMD_MASK | 'M')
+#define RSPMSG_TYPE_MSG_CMD_SET_BAUD  (RSPMSG_TYPE_CMD_MASK | 'b')
 
 #define RSPMSG_TYPE_RPL_MASK       0x2000
 #define RSPMSG_TYPE_RPL_VOID       (RSPMSG_TYPE_RPL_MASK | RSPMSG_TYPE_VOID)
@@ -61,7 +62,7 @@
 #define RSPMSG_STRUCT_END           \
   };
 
-RSPMSG_STRUCT_BEGIN_4(BUFFERS, arg1, arg2, arg3, arg4)
+RSPMSG_STRUCT_BEGIN_4(BUFFERS, b1, b2, b3, b4)
   RSPMSG_STRUCT_END
 
 RSPMSG_STRUCT_BEGIN_0(CMD_INTERRUPT)
@@ -84,7 +85,7 @@ RSPMSG_STRUCT_BEGIN_0(CMD_KILL)
   RSPMSG_STRUCT_END
 
 RSPMSG_STRUCT_BEGIN_0(CMD_CONTINUE)
-  long addr;
+  long long addr;
   RSPMSG_STRUCT_END
 
 RSPMSG_STRUCT_BEGIN_0(CMD_WRITE_REGS)
@@ -124,7 +125,7 @@ typedef struct _tag_RSPMSG {
 
   /* ------------------------- */
   union {
-    RSPMSG_BUFFERS          buffers;      /* Generic access to buffers    */
+    RSPMSG_BUFFERS          buffers;      /* generic buffers accesor      */
 
     RSPMSG_CMD_INTERRUPT    interrupt;    /* RSPMSG_TYPE_CMD_INTERRUPT    */
     RSPMSG_CMD_EXT_MODE     ext_mode;     /* RSPMSG_TYPE_CMD_EXT_MODE     */
@@ -187,5 +188,25 @@ typedef struct _tag_RSPMSG {
     };
   };
 } RSPMSG;
+
+static void rsp_msg_init(RSPMSG *m)
+{
+  bzero(&m, sizeof(RSPMSG));
+  /* init common buffers -- same as
+   *   buffer_init(&m->cmd.buffers.b1);
+   *   [...]
+   *   buffer_init(&m->cmd.buffers.b4);
+   * (IT HAS BEEN REMOVED BECAUSE IT IS REDUNDANT)
+   */
+  /* bzero(&m->cmd.buffers, sizeof(m->cmd.buffers)); */
+}
+
+static void rsp_msg_destroy(RSPMSG *m)
+{
+  buffer_destroy(&m->cmd.buffers.b1);
+  buffer_destroy(&m->cmd.buffers.b2);
+  buffer_destroy(&m->cmd.buffers.b3);
+  buffer_destroy(&m->cmd.buffers.b4);
+}
 
 #endif

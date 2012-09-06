@@ -13,7 +13,7 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
 
   /* clean reception buffer */
   buffer_reset(&fd->buff);
-  m->type           = RSPMSG_TYPE_INVALID;
+  m->type           = RSPMSG_TYPE_ERR_INVALID;
   m->seq_id         = 0;
   m->seq_id_enabled = 0;
   m->checksum       = 0;
@@ -186,7 +186,7 @@ int rsp_io_msg_read(RSPFD *fd, RSPMSG *m)
     m->type = RSPMSG_TYPE_ERR_BADCHK;
     return -1;
   }
-  if(fd->buff.l == 0)
+  if(fd->buff.s == 0)
     m->type = RSPMSG_TYPE_VOID;
   m->checksum = ecs;
 
@@ -276,7 +276,7 @@ int rsp_io_msg_write(RSPFD *fd)
   rsp_io_msg_write_msg_char(fd, ((cs >> 4) & 0x0f) + '0');
   rsp_io_msg_write_msg_char(fd, ((cs >> 0) & 0x0f) + '0');
 
-  m->checksum = cs;
+//m->checksum = cs;
 
   return 0;
 }
@@ -295,12 +295,8 @@ int rsp_io_msg_write_msg(RSPFD *fd, RSPMSG *m)
   switch(m->type)
   {
     case RSPMSG_TYPE_NONE:
-      return 0;
-
     case RSPMSG_TYPE_VOID:
-      break;
-
-    case RSPMSG_TYPE_MSG_CMD_SET_BAUD:
+      /* no message sent really */
       break;
 
     case RSPMSG_TYPE_RET:

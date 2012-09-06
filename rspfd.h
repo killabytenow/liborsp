@@ -17,6 +17,7 @@ typedef struct __tag_RSPFD {
 
   /* output/input buffer */
   BUFFER buff;
+  int    checksum;
 //  int    buff_state;
 //#define    RSP_FD_BUFF_VOID    0
 //#define    RSP_FD_BUFF_READ    0

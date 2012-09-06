@@ -3,8 +3,7 @@
 #include "msgio.h"
 #include "msgparse.h"
 
-#define SETAR(x, y) if(!m->type) { m->type = RSPMSG_TYPE_##x; r->type = RSPMSG_TYPE_##y; }
-int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r)
+int rsp_server_command_parse(RSPFD *fd, RSPMSG *m)
 {
   char *p = fd->buff.b;
   int l = fd->buff.s;
@@ -13,7 +12,6 @@ int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r)
   /* usually we will finish succesfully exiting of this */
   /* function parsing a command and returning an ack    */
   m->type = RSPMSG_TYPE_NONE;
-  r->type = RSPMSG_TYPE_NONE;
 
   code = *p;
   p++; l--;
@@ -24,65 +22,82 @@ int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r)
     case 'b': /* set baud       */
     case 'B': /* set breakpoint */
     case 'd': /* toggle debug   */
-      SETAR(ERR_DEPRECATED, RPL_VOID);
+      m->type = RSPMSG_TYPE_ERR_DEPRECATED;
       break;
 
     /* no params */
-    case '!': SETAR(CMD_EXT_MODE,      RPL_ACK);
-    case '?': SETAR(CMD_LAST_SIGNAL,   RPL_ACK);
-    case 'D': SETAR(CMD_DETACH,        RPL_ACK);
-    case 'g': SETAR(CMD_READ_REGS,     RPL_ACK);
-    case 'k': SETAR(CMD_KILL,          RPL_ACK);
-      break;
+    case '!': m->type = RSPMSG_TYPE_CMD_EXT_MODE;    break;
+    case '?': m->type = RSPMSG_TYPE_CMD_LAST_SIGNAL; break;
+    case 'D': m->type = RSPMSG_TYPE_CMD_DETACH;      break;
+    case 'g': m->type = RSPMSG_TYPE_CMD_READ_REGS;   break;
+    case 'k': m->type = RSPMSG_TYPE_CMD_KILL;        break;
 
     /* only 1 addr param */
-    case 'c': SETAR(CMD_CONTINUE,      RPL_ACK);
-      if((i = rsp_decode_hexnumber(&m->cmd.cont.addr, p, l, NULL, 1)) < 0) /* copy register name */
+    case 'c':
+      m->type = RSPMSG_TYPE_CMD_CONTINUE;
+      if((i = rsp_decode_hexnumber(&(m->cmd.cont.addr), p, l, NULL, 1)) < 0) /* copy register name */
         goto bad_syn;
       p += i; l -= i;
       break;
 
-    case 'G': SETAR(CMD_WRITE_REGS,    RPL_ACK);
+    case 'G':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_WRITE_REGS;
       if((i = rsp_decode_hexnumber(&m->cmd.buffers.arg1, p, l, NULL, 1)) < 0) /* copy register name */
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
     /* only 1 reg param */
-    case 'p': SETAR(CMD_READ_REG,      RPL_ACK);
+    case 'p':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_READ_REG;
       if((i = rsp_decode_string(&m->cmd.regname, p, l, NULL, 1)) < 0) /* copy register name */
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
     /* reg+value */
-    case 'P': SETAR(CMD_WRITE_REG,     RPL_ACK);
+    case 'P':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_WRITE_REG;
       if((i = rsp_decode_string(&m->cmd.regname, p, l, "=", 1)) < 0)
         goto bad_syn;
       p += i + 1; l -= i - 1;
       if((i = rsp_decode_hexdata(&m->cmd.value, p, l, NULL, 1)) < 0)
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
     /* 1 signal + 1 addr param */
-    case 'C': SETAR(CMD_CONT_SIGNAL,  RPL_ACK);
+    case 'C':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_CONT_SIGNAL;
       if((i = rsp_decode_intnumber(&m->cmd.length, p, l, ";", 1)) < 0)
         goto bad_syn;
       p += i + 1; l -= i + 1;
       if(!(i = rsp_decode_hexnumber(&m->cmd.addr, p, l, NULL, 1)))
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
-    case 'R': SETAR(CMD_REMOTE_START, RPL_ACK);
+    case 'R':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_REMOTE_START;
       if(!(i = rsp_decode_hexdata(&m->cmd.data1, p, l, NULL, 1)))
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
     /* thread purpose + thread id */
-    case 'H': SETAR(CMD_SET_THREAD, RPL_ACK);
+    case 'H':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_SET_THREAD;
       m->cmd.thread_purpose = *p;
       p++; l--;
       if(m->cmd.thread_purpose != 'c' && m->cmd.thread_purpose != 'g')
@@ -93,20 +108,26 @@ int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r)
       if(!(i = rsp_decode_intnumber(&m->cmd.thread_id, p, l, NULL, 1)))
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
     /* addr, length */
-    case 'm': SETAR(CMD_READ_MEMORY, RPL_ACK);
+    case 'm':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_READ_MEMORY;
       if(!(i = rsp_decode_hexnumber(&m->cmd.addr, p, l, ",", 1)))
         goto bad_syn;
       p += i + 1; l -= i + 1;
       if(!(i = rsp_decode_intnumber(&m->cmd.length, p, l, NULL, 1)))
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
     /* addr, length:HEXDATA */
-    case 'M': SETAR(CMD_WRITE_MEMORY, RPL_ACK);
+    case 'M':
+#if 0
+      m->type = RSPMSG_TYPE_CMD_WRITE_MEMORY;
       /* read addr + length */
       if(!(i = rsp_decode_hexnumber(&m->cmd.addr, p, l, ",", 1)))
         goto bad_syn;
@@ -117,6 +138,7 @@ int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r)
       if(!(i = rsp_decode_hexdata(&m->cmd.data1, p, l, NULL, 1)))
         goto bad_syn;
       p += i; l -= i;
+#endif
       break;
 
     /* reserved */
@@ -132,24 +154,22 @@ int rsp_server_command_parse(RSPFD *fd, RSPMSG *m, RSPMSG *r)
     case 'J':
     case 'l':
     case 'L':
-      SETAR(ERR_RESERVED, RPL_VOID);
+      m->type = RSPMSG_TYPE_ERR_RESERVED;
       break;
 
     default:
-      SETAR(ERR_UNKNOWN, RPL_VOID);
+      m->type = RSPMSG_TYPE_ERR_RESERVED;
       break;
   }
   return 0;
 
 bad_syn:
-  SETAR(ERR_BADSYN, RPL_VOID);
+  m->type = RSPMSG_TYPE_ERR_BADSYN;
   return -1;
 }
 
 int rsp_server_command_receive(RSPFD *fd, RSPMSG *msg)
 {
-  int r;
-
   if(rsp_io_msg_read(fd, msg) < 0)
   {
     ERR("Error happened in 'rsp_io_msg_read'.");
@@ -157,97 +177,86 @@ int rsp_server_command_receive(RSPFD *fd, RSPMSG *msg)
   }
 
   if(RSPMSG_TYPE_NOT_PARSED_YET)
-    return rsp_server_command_parse(fd, msg, rpl);
+    return rsp_server_command_parse(fd, msg);
 
   return 0;
 }
 
 int rsp_server_command_receive_and_ack(RSPFD *fd, RSPMSG *msg)
 {
-  int r;
   RSPMSG rpl;
 
   /* read message. If bad checksum repeat. */
+  rsp_msg_init(&rpl);
 again:
-  if(rsp_server_command_receive(fd, msg) < 0)
-  {
-    if(msg->type == RSPMSG_TYPE_ERR_BADCHK)
-    {
-      rpl->type = RSPMSG_TYPE_RPL_RET;
-      if(rsp_io_msg_write(fd, rpl) < 0)
-        return rpl->type;
-      goto again;
-    } else
-      return -1;
-  }
+  /* receive message */
+  if(!rsp_server_command_receive(fd, msg))
+    goto error;
 
-  /* check it is a CMD, elsewhere error */
-  if(RSPMSG_IS_CMD(msg->type))
-  {
-    if(msg->type == RSPMSG_TYPE_CMD_DETACH
-    || msg->type == RSPMSG_TYPE_CMD_INTERRUPT)
-      /* these messages should not be acked */
-      return 0;
-
-    rpl->type = RSPMSG_TYPE_RPL_ACK;
-    return rsp_io_msg_write(fd, rpl) < 0
-             ? rpl->type
-             : 0;
-  }
-
-  ERR("Unexpected message from client (message %d).", msg->type);
-  return -1;
-}
-
+  /* decide wether ack/reply/ignore message */
   switch(msg->type)
   {
-    /* ERRORS */
-      MSG("Received interruption %c from client.", msg->interrupt);
-
+    case RSPMSG_TYPE_CMD_LAST_SIGNAL:
+    case RSPMSG_TYPE_CMD_READ_REGS:
+    case RSPMSG_TYPE_CMD_KILL:
+    case RSPMSG_TYPE_CMD_EXT_MODE:
+    case RSPMSG_TYPE_CMD_CONTINUE:
+    case RSPMSG_TYPE_CMD_WRITE_REGS:
+    case RSPMSG_TYPE_CMD_READ_REG:
+    case RSPMSG_TYPE_CMD_WRITE_REG:
+    case RSPMSG_TYPE_CMD_CONT_SIGNAL:
+    case RSPMSG_TYPE_CMD_REMOTE_START:
+    case RSPMSG_TYPE_CMD_SET_THREAD:
+    case RSPMSG_TYPE_CMD_READ_MEMORY:
+    case RSPMSG_TYPE_CMD_WRITE_MEMORY:
+      rpl.type = RSPMSG_TYPE_RPL_ACK;
+      break;
+    
+    case RSPMSG_TYPE_CMD_DETACH:
+    case RSPMSG_TYPE_CMD_INTERRUPT:
     case RSPMSG_TYPE_EOF:
     case RSPMSG_TYPE_RPL_ACK:
     case RSPMSG_TYPE_RPL_RET:
     case RSPMSG_TYPE_VOID:
-    case RSPMSG_TYPE_CMD_INTERRUPT:
-      rpl->type = RSPMSG_TYPE_RPL_NONE;
+      rpl.type = RSPMSG_TYPE_RPL_NONE;
       return 0;
-    m->type = ;
 
-    case RSPMSG_TYPE_CMD:
-      /* fall into command parser */
+    case RSPMSG_TYPE_ERR_DEPRECATED:
+    case RSPMSG_TYPE_ERR_RESERVED:
+    case RSPMSG_TYPE_ERR_UNKNOWN:
+    case RSPMSG_TYPE_ERR_BADSYN:
+      rpl.type = RSPMSG_TYPE_RPL_VOID;
+      break;
+    
+    case RSPMSG_TYPE_ERR_BADCHK:
+      rpl.type = RSPMSG_TYPE_RPL_RET;
       break;
 
-    case RSPMSG_TYPE_CMD_EXT_MODE:
-      rpl->type = RSPMSG_TYPE_RPL_ACK;
-      break;
-#define RSPMSG_TYPE_CMD_LAST_SIGNAL   (RSPMSG_TYPE_CMD_MASK | '?')
-#define RSPMSG_TYPE_CMD_DETACH        (RSPMSG_TYPE_CMD_MASK | 'D')
-#define RSPMSG_TYPE_CMD_READ_REGS     (RSPMSG_TYPE_CMD_MASK | 'g')
-#define RSPMSG_TYPE_CMD_KILL          (RSPMSG_TYPE_CMD_MASK | 'k')
-#define RSPMSG_TYPE_CMD_CONTINUE      (RSPMSG_TYPE_CMD_MASK | 'c')
-#define RSPMSG_TYPE_CMD_WRITE_REGS    (RSPMSG_TYPE_CMD_MASK | 'G')
-#define RSPMSG_TYPE_CMD_READ_REG      (RSPMSG_TYPE_CMD_MASK | 'p')
-#define RSPMSG_TYPE_CMD_WRITE_REG     (RSPMSG_TYPE_CMD_MASK | 'P')
-#define RSPMSG_TYPE_CMD_CONT_SIGNAL   (RSPMSG_TYPE_CMD_MASK | 'C')
-#define RSPMSG_TYPE_CMD_REMOTE_START  (RSPMSG_TYPE_CMD_MASK | 'R')
-#define RSPMSG_TYPE_CMD_SET_THREAD    (RSPMSG_TYPE_CMD_MASK | 'H')
-#define RSPMSG_TYPE_CMD_READ_MEMORY   (RSPMSG_TYPE_CMD_MASK | 'm')
-#define RSPMSG_TYPE_CMD_WRITE_MEMORY  (RSPMSG_TYPE_CMD_MASK | 'M')
     default:
-      FAT("Unknown msg type %d.", msg->type);
-  }
-      default:
-  if(RSPMSG_IS_ERR(msg->type))
-  {
-        ERR("Unknown return code %d from 'rsp_io_msg_read()'.", r);
-        exit(1);
-    }
-    return -1;
+      FAT("Unknown message type '%d'.", msg->type);
   }
 
-  switch(msg->type)
-  {
+  /* write reply (and goto recv if 'reply' asked) */
+  if(rsp_io_msg_write(fd, &rpl) != 0)
+    goto error;
+  if(rpl.type == RSPMSG_TYPE_RPL_RET)
+    goto again;
 
+  /* check it is a CMD, elsewhere error */
+  if(!RSPMSG_IS_CMD(msg->type))
+  {
+    ERR("Unexpected message from client (message %d).", msg->type);
+    goto error;
+  }
+
+  return 0;
+
+error:
+  rsp_msg_destroy(&rpl);
+  return -1;
+}
+
+#if 0
 int rsp_client_command_process(RSPFD *fd, RSPMSG *m)
 {
   RSPSERVER_CMD_HANDLER *h;
@@ -351,3 +360,4 @@ terminated:
   MSG("GDB session terminated.");
 }
 */
+#endif

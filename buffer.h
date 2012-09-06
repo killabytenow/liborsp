@@ -13,13 +13,25 @@ typedef struct _tag_BUFFER {
 #define BUFFER_INIT { NULL, 0, 0 }
 #define BUFFER_INC  1024
 
+static inline void buffer_destroy(BUFFER *b)
+{
+  if(!b) return;
+  if(b->b) free(b->b);
+  bzero((void *) b, sizeof(BUFFER));
+}
+
+static inline void buffer_init(BUFFER *b)
+{
+  bzero((void *) b, sizeof(BUFFER));
+}
+
 static inline void buffer_grow(BUFFER *b, size_t count)
 {
   if((b->s + count) < b->__bs)
     return;
   b->__bs += (1 + count/BUFFER_INC) * BUFFER_INC;
   if(!(b->b = realloc(b->b, b->__bs)))
-    FAT("no mem for buffer_grow (to %d bytes, with increment of %ld).", b->__bs, count);
+    FAT("no mem for buffer_grow (to %d bytes, with increment of %ld).", b->__bs, (long) count);
 }
 
 static inline void buffer_reset(BUFFER *b)

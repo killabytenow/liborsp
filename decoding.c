@@ -54,13 +54,13 @@ int rsp_decode_hexdata(BUFFER *b, char *p, int sz, char *terminators, int tmanda
   return n;
 }
 
-int rsp_decode_hexnumber(long *n, char *p, int sz, char *terminators, int tmandatory)
+int rsp_decode_hexnumber(long long *n, char *p, int sz, char *terminators, int tmandatory)
 {
   int e, i;
 
   /* count bytes num */
   for(i = *n = e = 0; p[i] && char_in_str(p[i], terminators) < 0; i++, e++)
-    if(e >= sizeof(long) * 2)
+    if(e >= sizeof(long long) * 2)
     {
       ERR("Overflow: Hex number/address too big (%s).", p);
       return -1;
@@ -78,7 +78,7 @@ int rsp_decode_hexnumber(long *n, char *p, int sz, char *terminators, int tmanda
   return i;
 }
 
-int rsp_decode_intnumber(long *n, char *p, int sz, char *terminators, int tmandatory)
+int rsp_decode_intnumber(long long *n, char *p, int sz, char *terminators, int tmandatory)
 {
   int s, i;
 
