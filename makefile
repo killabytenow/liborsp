@@ -30,11 +30,12 @@ PACKAGE_TARNAME=$(PACKAGE_NAME)-$(PACKAGE_VERSION)
 # configure your installation here
 DOCDIR=/usr/share/doc/$(PACKAGE_NAME)
 LIBDIR=/usr/lib
+CFLAGS=-L ../libip
 
 # library modules
 ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o server.o msgio.o
 
-all : liborsp.so test liborsp.a
+all : liborsp.so tclient tserver liborsp.a
 
 %.o : %.c
 	gcc \
@@ -53,7 +54,10 @@ liborsp.so : $(ST_OBJS)
 %.so : %.o
 	gcc -Wall -shared -fPIC -o $@ $^
 
-test : test.c liborsp.so
+tclient : tclient.c liborsp.so
+	gcc -Wall -o $@ -I ../libip/ $^
+
+tserver : tserver.c liborsp.so
 	gcc -Wall -o $@ $^
 
 encoding.o : encoding.c encoding.h buffer.h
@@ -73,6 +77,7 @@ clean :
 	rm -f stacktrace.o ptrace.o stacktrace_dso.o \
 	      libstacktrace.a                        \
 	      stacktrace.so libstacktrace.so         \
+              $(ST_OBJS)                             \
 	      test
 
 install : all
@@ -91,7 +96,7 @@ $(PACKAGE_TARNAME).tar.gz :                  \
   BUGS COPYING ChangeLog README THANKS       \
   Makefile                                   \
   msgparse.c .h stacktrace_dso.c \
-  run_test.sh test.c
+  run_test.sh tclient.c tserver.c
 	mkdir $(PACKAGE_TARNAME)
 	cp $^ $(PACKAGE_TARNAME)
 	tar cfz $@ $(PACKAGE_TARNAME)

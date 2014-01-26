@@ -56,7 +56,7 @@ int rspfd_fd_init(RSPFD_FD *fd, int f)
 {
   if((fd->fd = dup(f)) < 0)
     FAT_ERRNO("cannot dup fd %d", f);
-  fd->getc = __fd_getc;
+  fd->getc = (int (*)(RSPFD *, char *)) __fd_getc;
   fd->putc = __fd_putc;
   fd->puts = __fd_puts;
   fd->putb = __fd_putb;

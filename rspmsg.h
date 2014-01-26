@@ -189,7 +189,7 @@ typedef struct _tag_RSPMSG {
   };
 } RSPMSG;
 
-static void rsp_msg_init(RSPMSG *m)
+inline static void rsp_msg_init(RSPMSG *m)
 {
   bzero(&m, sizeof(RSPMSG));
   /* init common buffers -- same as
@@ -201,7 +201,7 @@ static void rsp_msg_init(RSPMSG *m)
   /* bzero(&m->cmd.buffers, sizeof(m->cmd.buffers)); */
 }
 
-static void rsp_msg_destroy(RSPMSG *m)
+inline static void rsp_msg_destroy(RSPMSG *m)
 {
   buffer_destroy(&m->cmd.buffers.b1);
   buffer_destroy(&m->cmd.buffers.b2);

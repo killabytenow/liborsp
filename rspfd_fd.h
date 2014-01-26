@@ -5,7 +5,7 @@
 
 typedef struct __tag_RSPFD_FD {
   /* inherit from RSPFD */
-  struct __tag_RSPFD;
+  struct __tag_RSPFD rspdf;
 
   /* add special attributes */
   int   fd;

@@ -281,6 +281,14 @@ int rsp_io_msg_write(RSPFD *fd)
   return 0;
 }
 
+/*****************************************************************************
+ * int rsp_io_msg_write_msg(RSPFD *fd, RSPMSG *m)
+ *
+ *   Writes a RSP on 'fd'.
+ *
+ * Returns != 0 if everything ok.
+ *****************************************************************************/
+
 int rsp_io_msg_write_msg(RSPFD *fd, RSPMSG *m)
 {
   int r = 0;
@@ -299,14 +307,14 @@ int rsp_io_msg_write_msg(RSPFD *fd, RSPMSG *m)
       /* no message sent really */
       break;
 
-    case RSPMSG_TYPE_RET:
+    case RSPMSG_TYPE_RPL_RET:
       return fd->putc(fd, '-') != EOF;
 
-    case RSPMSG_TYPE_ACK:
+    case RSPMSG_TYPE_RPL_ACK:
       return fd->putc(fd, '+') != EOF;
 
-    case RSPMSG_TYPE_INT:
-      return fd->putc(fd, m->interrupt) != EOF;
+    case RSPMSG_TYPE_CMD_INTERRUPT:
+      return fd->putc(fd, m->cmd.interrupt.code) != EOF;
 
     default:
       FAT("Invalid msg type %d", m->type);
