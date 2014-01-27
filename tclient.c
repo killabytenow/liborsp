@@ -16,11 +16,11 @@ int main(int argc, char **argv)
 {
 	RSPFD_FD rspfd;
 	RSPMSG m;
-	int r, fd;
+	int r, fd, sock;
 	struct stat fdstat;
 	INET_ADDR addr;
 	int port;
-	struct sockaddr *saddr;
+	BIGSOCKADDR saddr;
 
 	if(argc > 2)
 		FAT("Too much parameters. You only need to specify a serial device or an IP address.");
@@ -46,21 +46,13 @@ int main(int argc, char **argv)
 		if(addr.type != INET_FAMILY_IPV4 && addr.type != INET_FAMILY_IPV6)
 			FAT("Invalid address type (%s).", argv[1]);
 
-		/* XXX: libip API cannot say type of sockaddr */
-		if((saddr = ip_addr_get_bigsockaddr(&addr, port)) == NULL)
+		if(ip_addr_to_bigsockaddr(&addr, port, &saddr))
 			FAT("Cannot convert address '%s' to socket: %s", argv[1], strerror(errno));
-
-		/* XXX: libip API cannot create correct SOCK */
-		if((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+		if((sock = ip_bigsockaddr_get_socket(&saddr, SOCK_STREAM, 0)) < 0)
 			FAT("Cannot create socket: %s", strerror(errno));
 
-		/* XXX: bad sockaddr size */
-		if(connect(sock, saddr, sizeof(struct sockaddr_in)) < 0) {
-			/* XXX: Se puede llegar aqui porque aún no ha conectado :) */
-			TERR_ERRNO("connect() 2 failed");
-			close(tt->sock);
-			continue;
-		}
+		if(connect(sock, &saddr.sa, saddr.size) < 0)
+			FAT_ERRNO("connect() 2 failed");
 	}
 
 	/* configure fd for a server through STDIN */
