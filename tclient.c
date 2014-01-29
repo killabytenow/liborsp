@@ -61,9 +61,13 @@ int main(int argc, char **argv)
 	rspfd_rle_read_enable((RSPFD *) &rspfd, 0);
 	rspfd_rle_write_enable((RSPFD *) &rspfd, 1);
 
-	while((r = rspmsg_command_parse((RSPFD *) &rspfd, &m)) == 0) {
+	while((r = rsp_client_command_parse((RSPFD *) &rspfd, &m)) == 0) {
+	#if 0
 		if((r = rsp_command_process((RSPFD &rspfd, &m)) != 0)
 			FAT("Cannot process command (err=%d).", r);
+	#else
+	#warning not implemented
+	#endif
 	}
 
 	rspfd_fd_fini(&rspfd);

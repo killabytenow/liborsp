@@ -33,7 +33,7 @@ LIBDIR=/usr/lib
 CFLAGS=-L ../libip
 
 # library modules
-ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o server.o msgio.o
+ST_OBJS=encoding.o decoding.o rspfd_fd.o msgparse.o server.o msgio.o client.o
 
 all : liborsp.so tclient tserver liborsp.a
 
@@ -54,11 +54,11 @@ liborsp.so : $(ST_OBJS)
 %.so : %.o
 	gcc -Wall -shared -fPIC -o $@ $^
 
-tclient : tclient.c liborsp.so
+tclient : tclient.c liborsp.so ../libip/libip.a
 	gcc -Wall -o $@ -I ../libip/ $^
 
-tserver : tserver.c liborsp.so
-	gcc -Wall -o $@ $^
+tserver : tserver.c liborsp.so ../libip/libip.a
+	gcc -Wall -o $@ -I ../libip/ $^
 
 encoding.o : encoding.c encoding.h buffer.h
 decoding.o : decoding.c decoding.h buffer.h
